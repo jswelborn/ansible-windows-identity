@@ -1,0 +1,33 @@
+---
+- name: Test Azure Key Vault integration
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    keyvault_url: https://kv-ansible-test.vault.azure.net/
+
+  tasks:
+    - name: Read domain join username
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvault_url }}"
+        name: "domain-join-user"
+      register: domain_join_user_secret
+
+    - name: Read domain join password
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvault_url }}"
+        name: "domain-join-password"
+      register: domain_join_password_secret
+
+    - name: Read hetwinadmin password
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvault_url }}"
+        name: "hetwinadmin"
+      register: hetwinadmin_secret
+
+    - name: Print secrets (TEST ONLY)
+      ansible.builtin.debug:
+        msg:
+          - "domain_join_user = {{ domain_join_user_secret.secrets[0].secret }}"
+          - "domain_join_password = {{ domain_join_password_secret.secrets[0].secret }}"
+          - "hetwinadmin_password = {{ hetwinadmin_secret.secrets[0].secret }}"
