@@ -1,12 +1,79 @@
 ---
-- name: Test injected Windows Domain Join credential
-  hosts: localhost
+- name: Configure Windows identity and domain membership
+  hosts: all
   gather_facts: false
 
+  vars_files:
+    - vars/credentials.yaml
+
   tasks:
-    - name: Print injected secrets (TEST ONLY)
-      ansible.builtin.debug:
-        msg:
-          - "domain_join_user = {{ lookup('env', 'DOMAIN_JOIN_USER') }}"
-          - "domain_join_password = {{ lookup('env', 'DOMAIN_JOIN_PASSWORD') }}"
-          - "hetwinadmin_password = {{ lookup('env', 'HETWINADMIN_PASSWORD') }}"
+    - name: Ensure hetwinadmin is in local Administrators
+      ansible.windows.win_group_membership:
+        name: Administrators
+        members:
+          - hetwinadmin
+        state: present
+
+    - name: Join server to domain and set hostname
+      microsoft.ad.membership:
+        dns_domain_name: "{{ domain_name }}"
+        hostname: "{{ windows_hostname }}"
+        domain_admin_user: "{{ domain_join_user }}"
+        domain_admin_password: "{{ domain_join_password }}"
+        domain_ou_path: "{{ domain_ou_path }}"
+        state: domain
+        reboot: true
+      register: domain_join
+      no_log: true
+
+    - name: Reset connection after domain join
+      ansible.builtin.meta: reset_connection
+
+    - name: Wait for WinRM to come back
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+        sleep: 10
+      when: domain_join.changed
+
+    - name: Wait for domain secure channel
+      ansible.windows.win_shell: |
+        if (Test-ComputerSecureChannel) {
+          Write-Output "ready"
+        } else {
+          Write-Output "not_ready"
+        }
+      register: secure_channel_check
+      changed_when: false
+      retries: 18
+      delay: 10
+      until: secure_channel_check.stdout_lines | last == "ready"
+      when: domain_join.changed
+
+    - name: Wait until snowcmdb can be resolved from the domain
+      ansible.windows.win_shell: |
+        try {
+          $acct = New-Object System.Security.Principal.NTAccount("{{ snowcmdb_user }}")
+          $null = $acct.Translate([System.Security.Principal.SecurityIdentifier])
+          Write-Output "ready"
+        } catch {
+          Write-Output "not_ready"
+        }
+      register: snowcmdb_lookup
+      changed_when: false
+      retries: 18
+      delay: 10
+      until: snowcmdb_lookup.stdout_lines | last == "ready"
+
+    - name: Ensure snowcmdb is in local Administrators
+      ansible.windows.win_group_membership:
+        name: Administrators
+        members:
+          - "{{ snowcmdb_user }}"
+        state: present
+
+    - name: Update hetwinadmin password
+      ansible.windows.win_user:
+        name: hetwinadmin
+        password: "{{ hetwinadmin_password }}"
+        update_password: always
+      no_log: true
