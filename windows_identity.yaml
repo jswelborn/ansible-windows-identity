@@ -76,9 +76,17 @@
           - "{{ snowcmdb_user }}"
         state: present
 
-    - name: Update hetwinadmin password
-      ansible.windows.win_user:
-        name: hetwinadmin
-        password: "{{ hetwinadmin_password }}"
-        update_password: always
-      no_log: true
+    - name: Ensure Ansible service account is in local Administrators
+      ansible.windows.win_group_membership:
+        name: Administrators
+        members:
+          - "{{ windows_automation_user }}"
+        state: present
+
+    # Keep disabled until the bootstrap/rotation flow is finalized.
+    # - name: Update hetwinadmin password
+    #   ansible.windows.win_user:
+    #     name: hetwinadmin
+    #     password: "{{ hetwinadmin_password }}"
+    #     update_password: always
+    #   no_log: true
