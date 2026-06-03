@@ -15,13 +15,6 @@
       until: winrm_test is succeeded
       changed_when: false
 
-    - name: Ensure hetwinadmin is in local Administrators
-      ansible.windows.win_group_membership:
-        name: Administrators
-        members:
-          - hetwinadmin
-        state: present
-
     - name: Join server to domain and set hostname
       microsoft.ad.membership:
         dns_domain_name: "{{ domain_name }}"
