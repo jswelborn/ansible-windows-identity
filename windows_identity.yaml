@@ -7,10 +7,15 @@
     - vars/credentials.yaml
 
   tasks:
-    - name: Wait until WinRM responds
+    - name: Wait for WinRM transport to become available
+      ansible.builtin.wait_for_connection:
+        delay: "{{ 30 if cloud_provider | default('') == 'aws' else 5 }}"
+        timeout: "{{ 600 if cloud_provider | default('') == 'aws' else 300 }}"
+
+    - name: Validate WinRM command execution
       ansible.windows.win_shell: hostname
       register: winrm_test
-      retries: 60
+      retries: 12
       delay: 10
       until: winrm_test is succeeded
       changed_when: false
@@ -31,9 +36,15 @@
       ansible.builtin.meta: reset_connection
 
     - name: Wait for WinRM to come back
+      ansible.builtin.wait_for_connection:
+        delay: 30
+        timeout: 600
+      when: domain_join.changed
+
+    - name: Validate WinRM after reboot
       ansible.windows.win_shell: hostname
       register: winrm_after_reboot
-      retries: 60
+      retries: 12
       delay: 10
       until: winrm_after_reboot is succeeded
       changed_when: false
