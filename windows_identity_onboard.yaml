@@ -3,13 +3,10 @@
   hosts: all
   gather_facts: false
 
-  vars_files:
-    - vars/credentials.yaml
-
   tasks:
     - name: Ensure Ansible service account is in local Administrators
       ansible.windows.win_group_membership:
         name: Administrators
         members:
-          - "{{ windows_automation_user }}"
+          - "COMPANYNET\\HTSGLBAnsibleSVC01"
         state: present
