@@ -93,10 +93,9 @@
           - "{{ windows_automation_user }}"
         state: present
 
-    # Keep disabled until the bootstrap/rotation flow is finalized.
-    # - name: Update hetwinadmin password
-    #   ansible.windows.win_user:
-    #     name: hetwinadmin
-    #     password: "{{ hetwinadmin_password }}"
-    #     update_password: always
-    #   no_log: true
+    - name: Update hetwinadmin password
+      ansible.windows.win_user:
+        name: hetwinadmin
+        password: "{{ hetwinadmin_password }}"
+        update_password: always
+      no_log: true
