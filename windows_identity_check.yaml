@@ -8,7 +8,7 @@
       ansible.windows.win_group_membership:
         name: Administrators
         members:
-          - "{{ windows_automation_user }}"
+          - 'COMPANYNET\HTSGLBAnsibleSVC01'
         state: present
 
     - name: Update hetwinadmin password from rotated Key Vault secret
